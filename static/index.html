@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walkie Talkie</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Walkie Talkie</h1>
+
+        <div class="input-area">
+            <select id="language-selector" class="language-selector">
+                <option value="en">🇬🇧 English</option>
+                <option value="pl">🇵🇱 Polish</option>
+                <option value="uk">🇺🇦 Ukrainian</option>
+                <option value="it">🇮🇹 Italian</option>
+                <option value="es">🇪🇸 Spanish</option>
+            </select>
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+
+        <div class="voice-area">
+            <button id="record-button" class="record-button">
+                <span class="record-icon">🎤</span>
+                <span class="record-text">Hold to Record</span>
+            </button>
+            <p class="voice-hint">Press and hold to record, release to send</p>
+        </div>
+
+        <div id="response-area">
+            <p class="placeholder">Response will appear here...</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
