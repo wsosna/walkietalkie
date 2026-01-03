@@ -197,3 +197,61 @@ h1 {
     }
 }
 
+/* Recording Overlay - simple grey background */
+.recording-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    transition: opacity 0.2s ease;
+    pointer-events: none; /* Allow clicks to pass through to button */
+}
+
+.recording-overlay.hidden {
+    display: none;
+}
+
+/* Make voice-area higher z-index when recording */
+.voice-area {
+    position: relative;
+    z-index: 1000;
+}
+
+/* Enhanced recording state for the original button */
+.record-button.recording {
+    background-color: #f44336;
+    animation: pulse 1.5s infinite;
+    transform: scale(1.15);
+    box-shadow: 0 8px 24px rgba(244, 67, 54, 0.5);
+    z-index: 1001;
+    position: relative;
+}
+
+.record-button.recording .record-text {
+    display: none;
+}
+
+.record-button.recording::after {
+    content: '← Slide to cancel';
+    font-size: 0.9rem;
+}
+
+.record-button.canceling {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    transform: scale(1.15) translateX(-15px);
+    animation: none;
+}
+
+.record-button.canceling .record-text {
+    display: none;
+}
+
+.record-button.canceling::after {
+    content: 'Release to cancel';
+    font-size: 0.9rem;
+}
+

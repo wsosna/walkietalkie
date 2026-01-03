@@ -3,6 +3,7 @@ const sendButton = document.getElementById('send-button');
 const responseArea = document.getElementById('response-area');
 const recordButton = document.getElementById('record-button');
 const languageSelector = document.getElementById('language-selector');
+const recordingOverlay = document.getElementById('recording-overlay');
 
 let mediaRecorder = null;
 let audioChunks = [];
@@ -171,6 +172,11 @@ async function startRecording() {
         });
 
         mediaRecorder.addEventListener('stop', async () => {
+            // Hide overlay and reset button state
+            recordingOverlay.classList.add('hidden');
+            recordButton.classList.remove('recording');
+            recordButton.classList.remove('canceling');
+
             // Only send if not canceled
             if (!isCanceled) {
                 const audioBlob = new Blob(audioChunks, { type: mimeType });
@@ -192,17 +198,11 @@ async function startRecording() {
         mediaRecorder.start();
         isRecording = true;
 
+        // Show overlay and enlarge original button
+        recordingOverlay.classList.remove('hidden');
         recordButton.classList.add('recording');
-        recordButton.querySelector('.record-text').textContent = '← Slide to cancel';
 
-    console.log('stopRecording called, isRecording:', isRecording, 'mediaRecorder:', mediaRecorder);
-
-    if (!isRecording || !mediaRecorder) {
-        console.log('Not recording or no mediaRecorder, returning');
-        return;
-    }
     } catch (error) {
-    console.log('Stopping recording...');
         console.error('Error accessing microphone:', error);
         responseArea.innerHTML = '<p class="error">Error: Could not access microphone. Please grant permission.</p>';
     }
@@ -211,14 +211,10 @@ async function startRecording() {
 function stopRecording() {
     if (!isRecording || !mediaRecorder) return;
 
+    console.log('Recording stopped', 'canceled:', isCanceled);
+
     mediaRecorder.stop();
     isRecording = false;
-
-    recordButton.classList.remove('recording');
-    recordButton.classList.remove('canceling');
-    recordButton.querySelector('.record-text').textContent = 'Hold to Record';
-
-    console.log('Recording stopped', 'canceled:', isCanceled);
 }
 
 async function sendAudioMessage(audioBlob, mimeType) {
@@ -299,11 +295,9 @@ function handleDragMove(e) {
     // Cancel if dragged left beyond threshold (and not too much vertical movement)
     if (deltaX > CANCEL_THRESHOLD && deltaY < 50) {
         recordButton.classList.add('canceling');
-        recordButton.querySelector('.record-text').textContent = 'Release to cancel';
         isCanceled = true;
     } else {
         recordButton.classList.remove('canceling');
-        recordButton.querySelector('.record-text').textContent = '← Slide to cancel';
         isCanceled = false;
     }
 }
@@ -326,9 +320,11 @@ recordButton.addEventListener('mousedown', (e) => {
 // Track mouse movement for cancel gesture
 document.addEventListener('mousemove', handleDragMove);
 
-recordButton.addEventListener('mouseup', stopRecording);
-recordButton.addEventListener('mouseleave', () => {
-    if (isRecording) stopRecording();
+// Global mouseup to stop recording anywhere
+document.addEventListener('mouseup', () => {
+    if (isRecording) {
+        stopRecording();
+    }
 });
 
 // Touch events for mobile
@@ -342,9 +338,12 @@ recordButton.addEventListener('touchstart', (e) => {
 // Track touch movement for cancel gesture
 document.addEventListener('touchmove', handleDragMove);
 
-recordButton.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    stopRecording();
+// Global touchend to stop recording anywhere
+document.addEventListener('touchend', (e) => {
+    if (isRecording) {
+        e.preventDefault();
+        stopRecording();
+    }
 });
 
 // Focus input on load
