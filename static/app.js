@@ -7,6 +7,10 @@ const languageSelector = document.getElementById('language-selector');
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+let isCanceled = false;
+let recordStartX = 0;
+let recordStartY = 0;
+const CANCEL_THRESHOLD = 100; // pixels to drag left before canceling
 
 // Cookie helper functions
 function setCookie(name, value, days = 7) {
@@ -160,14 +164,26 @@ async function startRecording() {
 
         mediaRecorder = new MediaRecorder(stream, { mimeType });
         audioChunks = [];
+        isCanceled = false; // Reset cancel state
 
         mediaRecorder.addEventListener('dataavailable', event => {
             audioChunks.push(event.data);
         });
 
         mediaRecorder.addEventListener('stop', async () => {
-            const audioBlob = new Blob(audioChunks, { type: mimeType });
-            await sendAudioMessage(audioBlob, mimeType);
+            // Only send if not canceled
+            if (!isCanceled) {
+                const audioBlob = new Blob(audioChunks, { type: mimeType });
+                await sendAudioMessage(audioBlob, mimeType);
+            } else {
+                // Show canceled message briefly
+                responseArea.innerHTML = '<p style="color: #666; font-style: italic;">Recording canceled</p>';
+                setTimeout(() => {
+                    if (responseArea.innerHTML.includes('Recording canceled')) {
+                        responseArea.innerHTML = '<p class="placeholder">Your response will appear here...</p>';
+                    }
+                }, 1500);
+            }
 
             // Stop all tracks to release the microphone
             stream.getTracks().forEach(track => track.stop());
@@ -177,7 +193,7 @@ async function startRecording() {
         isRecording = true;
 
         recordButton.classList.add('recording');
-        recordButton.querySelector('.record-text').textContent = 'Recording';
+        recordButton.querySelector('.record-text').textContent = '← Slide to cancel';
 
     console.log('stopRecording called, isRecording:', isRecording, 'mediaRecorder:', mediaRecorder);
 
@@ -199,9 +215,10 @@ function stopRecording() {
     isRecording = false;
 
     recordButton.classList.remove('recording');
+    recordButton.classList.remove('canceling');
     recordButton.querySelector('.record-text').textContent = 'Hold to Record';
 
-    console.log('Recording stopped');
+    console.log('Recording stopped', 'canceled:', isCanceled);
 }
 
 async function sendAudioMessage(audioBlob, mimeType) {
@@ -269,6 +286,28 @@ async function sendAudioMessage(audioBlob, mimeType) {
     }
 }
 
+// Track drag position for cancel gesture
+function handleDragMove(e) {
+    if (!isRecording) return;
+
+    const currentX = e.clientX || e.touches?.[0]?.clientX || 0;
+    const currentY = e.clientY || e.touches?.[0]?.clientY || 0;
+
+    const deltaX = recordStartX - currentX;
+    const deltaY = Math.abs(recordStartY - currentY);
+
+    // Cancel if dragged left beyond threshold (and not too much vertical movement)
+    if (deltaX > CANCEL_THRESHOLD && deltaY < 50) {
+        recordButton.classList.add('canceling');
+        recordButton.querySelector('.record-text').textContent = 'Release to cancel';
+        isCanceled = true;
+    } else {
+        recordButton.classList.remove('canceling');
+        recordButton.querySelector('.record-text').textContent = '← Slide to cancel';
+        isCanceled = false;
+    }
+}
+
 // Event listeners for text input
 sendButton.addEventListener('click', sendMessage);
 messageInput.addEventListener('keypress', (e) => {
@@ -278,7 +317,15 @@ messageInput.addEventListener('keypress', (e) => {
 });
 
 // Voice recording event listeners (press and hold)
-recordButton.addEventListener('mousedown', startRecording);
+recordButton.addEventListener('mousedown', (e) => {
+    recordStartX = e.clientX;
+    recordStartY = e.clientY;
+    startRecording();
+});
+
+// Track mouse movement for cancel gesture
+document.addEventListener('mousemove', handleDragMove);
+
 recordButton.addEventListener('mouseup', stopRecording);
 recordButton.addEventListener('mouseleave', () => {
     if (isRecording) stopRecording();
@@ -287,8 +334,14 @@ recordButton.addEventListener('mouseleave', () => {
 // Touch events for mobile
 recordButton.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    recordStartX = e.touches[0].clientX;
+    recordStartY = e.touches[0].clientY;
     startRecording();
 });
+
+// Track touch movement for cancel gesture
+document.addEventListener('touchmove', handleDragMove);
+
 recordButton.addEventListener('touchend', (e) => {
     e.preventDefault();
     stopRecording();

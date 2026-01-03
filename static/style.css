@@ -145,9 +145,18 @@ h1 {
     animation: pulse 1.5s infinite;
 }
 
+.record-button.canceling {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    transform: translateX(-10px);
+    animation: none;
+}
+
+.record-button.recording .record-text {
+    font-size: 0.9rem;
+}
+
 .record-button.recording .record-text::after {
-    content: '...';
-    animation: dots 1.5s infinite;
+    content: '';
 }
 
 .record-button:disabled {
