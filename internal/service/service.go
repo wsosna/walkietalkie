@@ -23,9 +23,9 @@ type Service struct {
 }
 
 // New creates a new service instance
-func New(aiService *ai.Service) *Service {
+func New(apiKey, model string) *Service {
 	return &Service{
-		ai: aiService,
+		ai: ai.NewService(apiKey, model),
 	}
 }
 
