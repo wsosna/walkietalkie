@@ -2,25 +2,24 @@ package handler
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 
-	"walkietalkie/internal/ai"
+	"walkietalkie/internal/service"
 )
 
 // Chat handles HTTP requests for chat endpoint
 type Chat struct {
-	svc *ai.Service
+	svc *service.Service
 }
 
 // NewChat creates a new chat handler
-func NewChat(aiService *ai.Service) *Chat {
+func NewChat(chatService *service.Service) *Chat {
 	return &Chat{
-		svc: aiService,
+		svc: chatService,
 	}
 }
 
@@ -46,17 +45,17 @@ func (h *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	var responseText, responseID string
-	var err error
-
 	contentType := r.Header.Get("Content-Type")
+
+	var response *service.Response
+	var err error
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		// Audio input
-		responseText, responseID, err = h.handleAudio(ctx, r)
+		response, err = h.handleAudio(ctx, r)
 	} else {
 		// Text input
-		responseText, responseID, err = h.handleText(ctx, r)
+		response, err = h.handleText(ctx, r)
 	}
 
 	if err != nil {
@@ -65,26 +64,15 @@ func (h *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate audio response
-	language := validateAndMapLanguage(r.FormValue("language"))
-	audioData, err := h.svc.GenerateVoiceResponse(ctx, responseText, language)
-	var audioBase64 string
-	if err != nil {
-		// Log error but don't fail the request - text response is still valuable
-		slog.Error("Failed to generate voice response", "error", err)
-	} else {
-		// Encode audio bytes to base64
-		audioBase64 = encodeBase64(audioData)
+	// Build and send JSON response
+	w.Header().Set("Content-Type", "application/json")
+	chatResponse := ChatResponse{
+		Reply:      response.Reply,
+		ResponseID: response.ResponseID,
+		AudioData:  response.AudioData,
 	}
 
-	// Return JSON response
-	w.Header().Set("Content-Type", "application/json")
-	response := ChatResponse{
-		Reply:      responseText,
-		ResponseID: responseID,
-		AudioData:  audioBase64,
-	}
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(chatResponse); err != nil {
 		slog.Error("Error encoding response", "error", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
@@ -92,64 +80,36 @@ func (h *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleText processes text-based chat requests
-func (h *Chat) handleText(ctx context.Context, r *http.Request) (string, string, error) {
+func (h *Chat) handleText(ctx context.Context, r *http.Request) (*service.Response, error) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Error("Failed to decode request", "error", err)
-		return "", "", err
+		return nil, fmt.Errorf("invalid JSON: %w", err)
 	}
 
 	if req.Message == "" {
-		return "", "", fmt.Errorf("message is required")
+		return nil, fmt.Errorf("message is required")
 	}
 
-	// Validate and default language
-	language := validateAndMapLanguage(req.Language)
-
-	slog.Info("Text message received", "message_length", len(req.Message), "language", language)
-	return h.svc.SendMessage(ctx, req.Message, req.PreviousResponseID, language)
+	return h.svc.ProcessTextMessage(ctx, req.Message, req.PreviousResponseID, req.Language)
 }
 
 // handleAudio processes audio-based chat requests
-func (h *Chat) handleAudio(ctx context.Context, r *http.Request) (string, string, error) {
+func (h *Chat) handleAudio(ctx context.Context, r *http.Request) (*service.Response, error) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		slog.Error("Failed to parse multipart form", "error", err)
-		return "", "", err
+		return nil, fmt.Errorf("invalid multipart form: %w", err)
 	}
 
 	file, header, err := r.FormFile("audio")
 	if err != nil {
 		slog.Error("Failed to get audio file", "error", err)
-		return "", "", err
+		return nil, fmt.Errorf("audio file missing: %w", err)
 	}
 	defer file.Close()
 
 	previousResponseID := r.FormValue("previousResponseId")
-	language := validateAndMapLanguage(r.FormValue("language"))
+	language := r.FormValue("language")
 
-	slog.Info("Audio file received", "filename", header.Filename, "size", header.Size, "language", language)
-	return h.svc.TranscribeAndSend(ctx, file, header.Filename, previousResponseID, language)
-}
-
-// encodeBase64 encodes byte slice to base64 string
-func encodeBase64(data []byte) string {
-	return base64.StdEncoding.EncodeToString(data)
-}
-
-// validateAndMapLanguage validates the language code and returns a valid code or default
-func validateAndMapLanguage(lang string) string {
-	validLanguages := map[string]string{
-		"en": "english",
-		"pl": "polish",
-		"uk": "ukrainian",
-		"it": "italian",
-		"es": "spanish",
-	}
-
-	if validLanguages[lang] != "" {
-		return validLanguages[lang]
-	}
-
-	// Default to English if invalid or empty
-	return validLanguages["en"]
+	return h.svc.ProcessAudioMessage(ctx, file, header.Filename, previousResponseID, language)
 }

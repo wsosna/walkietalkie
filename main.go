@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"walkietalkie/internal/ai"
 	"walkietalkie/internal/config"
 	"walkietalkie/internal/handler"
+	"walkietalkie/internal/service"
 )
 
 func main() {
@@ -23,17 +23,12 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
-	systemPrompt, err := ai.LoadSystemPrompt()
-	if err != nil {
-		slog.Error("Failed to load system prompt", "error", err)
-		os.Exit(1)
-	}
 
-	// Initialize AI service (handles all OpenAI operations)
-	aiService := ai.NewService(cfg.OpenAIAPIKey, systemPrompt, cfg.Model)
+	// Initialize business logic service
+	svc := service.New(cfg.OpenAIAPIKey, cfg.Model)
 
 	// Initialize chat handler
-	chatHandler := handler.NewChat(aiService)
+	chatHandler := handler.NewChat(svc)
 
 	// Setup router
 	mux := http.NewServeMux()

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/openai/openai-go"
@@ -16,7 +17,13 @@ type Service struct {
 }
 
 // NewService creates a new AI service instance
-func NewService(apiKey, systemPrompt, model string) *Service {
+func NewService(apiKey, model string) *Service {
+	systemPrompt, err := loadSystemPrompt()
+	if err != nil {
+		slog.Error("Failed to load system prompt", "error", err)
+		os.Exit(1)
+	}
+
 	client := openai.NewClient(option.WithAPIKey(apiKey))
 
 	// Parse model string to ChatModel
@@ -32,8 +39,8 @@ func NewService(apiKey, systemPrompt, model string) *Service {
 	}
 }
 
-// LoadSystemPrompt reads the system prompt from file
-func LoadSystemPrompt() (string, error) {
+// loadSystemPrompt reads the system prompt from file
+func loadSystemPrompt() (string, error) {
 	content, err := os.ReadFile("internal/prompts/system.txt")
 	if err != nil {
 		return "", fmt.Errorf("failed to read system prompt: %w", err)
