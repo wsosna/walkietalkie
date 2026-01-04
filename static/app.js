@@ -4,6 +4,7 @@ const responseArea = document.getElementById('response-area');
 const recordButton = document.getElementById('record-button');
 const languageSelector = document.getElementById('language-selector');
 const recordingOverlay = document.getElementById('recording-overlay');
+const waveform = document.getElementById('waveform');
 
 let mediaRecorder = null;
 let audioChunks = [];
@@ -176,6 +177,7 @@ async function startRecording() {
             recordingOverlay.classList.add('hidden');
             recordButton.classList.remove('recording');
             recordButton.classList.remove('canceling');
+            waveform.classList.add('hidden');
 
             // Only send if not canceled
             if (!isCanceled) {
@@ -201,6 +203,7 @@ async function startRecording() {
         // Show overlay and enlarge original button
         recordingOverlay.classList.remove('hidden');
         recordButton.classList.add('recording');
+        waveform.classList.remove('hidden');
 
     } catch (error) {
         console.error('Error accessing microphone:', error);

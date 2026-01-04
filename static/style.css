@@ -110,11 +110,18 @@ h1 {
 }
 
 .voice-area {
-    margin: 30px 0;
+    margin: 20px 0;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1000;
 }
 
 .record-button {
+    position: relative;
     padding: 20px 40px;
     background-color: #2196F3;
     color: white;
@@ -140,24 +147,6 @@ h1 {
     transform: translateY(0);
 }
 
-.record-button.recording {
-    background-color: #f44336;
-    animation: pulse 1.5s infinite;
-}
-
-.record-button.canceling {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    transform: translateX(-10px);
-    animation: none;
-}
-
-.record-button.recording .record-text {
-    font-size: 0.9rem;
-}
-
-.record-button.recording .record-text::after {
-    content: '';
-}
 
 .record-button:disabled {
     background-color: #ccc;
@@ -170,10 +159,79 @@ h1 {
 }
 
 .voice-hint {
-    margin-top: 10px;
+    margin-top: 0;
     color: #666;
     font-size: 12px;
     font-style: italic;
+}
+
+/* Waveform Animation */
+.waveform {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.waveform.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.waveform .bar {
+    width: 4px;
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+    border-radius: 2px;
+    animation: wave 0.8s ease-in-out infinite;
+}
+
+.waveform .bar:nth-child(1) {
+    animation-delay: 0s;
+    height: 20px;
+}
+
+.waveform .bar:nth-child(2) {
+    animation-delay: 0.1s;
+    height: 15px;
+}
+
+.waveform .bar:nth-child(3) {
+    animation-delay: 0.2s;
+    height: 25px;
+}
+
+.waveform .bar:nth-child(4) {
+    animation-delay: 0.3s;
+    height: 30px;
+}
+
+.waveform .bar:nth-child(5) {
+    animation-delay: 0.4s;
+    height: 20px;
+}
+
+.waveform .bar:nth-child(6) {
+    animation-delay: 0.5s;
+    height: 15px;
+}
+
+.waveform .bar:nth-child(7) {
+    animation-delay: 0.6s;
+    height: 22px;
+}
+
+@keyframes wave {
+    0%, 100% {
+        transform: scaleY(0.5);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scaleY(2);
+        opacity: 1;
+    }
 }
 
 @keyframes pulse {
@@ -215,17 +273,10 @@ h1 {
     display: none;
 }
 
-/* Make voice-area higher z-index when recording */
-.voice-area {
-    position: relative;
-    z-index: 1000;
-}
-
 /* Enhanced recording state for the original button */
 .record-button.recording {
     background-color: #f44336;
     animation: pulse 1.5s infinite;
-    transform: scale(1.15);
     box-shadow: 0 8px 24px rgba(244, 67, 54, 0.5);
     z-index: 1001;
     position: relative;
@@ -242,7 +293,6 @@ h1 {
 
 .record-button.canceling {
     background: linear-gradient(135deg, #ef4444, #dc2626);
-    transform: scale(1.15) translateX(-15px);
     animation: none;
 }
 
