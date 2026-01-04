@@ -11,9 +11,10 @@ import (
 
 // SendMessage sends a text message to OpenAI and returns the response
 func (s *Service) SendMessage(ctx context.Context, message, previousResponseID, language string) (string, string, error) {
-
-	// TODO: find a way to detect the language change to condition adding system prompt and lower amount of tokens
-	message = fmt.Sprintf("%s\n\nUser: %s", replacePlaceholders(s.systemPrompt, language), message)
+	// Add system prompt for first message only - previousResponseID is saved in cookie per language
+	if previousResponseID == "" {
+		message = fmt.Sprintf("%s\n\nUser: %s", replacePlaceholders(s.systemPrompt, language), message)
+	}
 	params := responses.ResponseNewParams{
 		Model:           s.model,
 		Temperature:     openai.Float(0.4),

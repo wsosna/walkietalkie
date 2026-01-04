@@ -167,18 +167,20 @@ h1 {
 
 /* Waveform Animation */
 .waveform {
-    display: flex;
+    display: none;
     gap: 6px;
     align-items: center;
     justify-content: center;
     height: 80px;
-    opacity: 1;
+    opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
-.waveform.hidden {
-    opacity: 0;
-    pointer-events: none;
+.waveform:not(.hidden) {
+    display: flex;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .waveform .bar {

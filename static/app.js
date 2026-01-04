@@ -37,6 +37,11 @@ function deleteCookie(name) {
     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
 }
 
+// Get cookie name for current language
+function previousResponseIdByCurrLanguage() {
+    return 'previousResponseId-' + languageSelector.value;
+}
+
 // Play audio response from base64 data
 function playAudioResponse(base64Audio) {
     try {
@@ -94,7 +99,7 @@ async function sendMessage() {
         };
 
         // Get previousResponseId from cookie
-        const previousResponseId = getCookie('previousResponseId');
+        const previousResponseId = getCookie(previousResponseIdByCurrLanguage());
         if (previousResponseId) {
             requestBody.previousResponseId = previousResponseId;
         }
@@ -115,7 +120,7 @@ async function sendMessage() {
 
         // Store the response ID in cookie for next request
         if (data.responseId) {
-            setCookie('previousResponseId', data.responseId);
+            setCookie(previousResponseIdByCurrLanguage(), data.responseId);
         }
 
         // Display the response
@@ -240,7 +245,7 @@ async function sendAudioMessage(audioBlob, mimeType) {
         formData.append('audio', audioBlob, `recording${extension}`);
 
         // Get previousResponseId from cookie
-        const previousResponseId = getCookie('previousResponseId');
+        const previousResponseId = getCookie(previousResponseIdByCurrLanguage());
         if (previousResponseId) {
             formData.append('previousResponseId', previousResponseId);
         }
@@ -263,7 +268,7 @@ async function sendAudioMessage(audioBlob, mimeType) {
 
         // Store the response ID in cookie for next request
         if (data.responseId) {
-            setCookie('previousResponseId', data.responseId);
+            setCookie(previousResponseIdByCurrLanguage(), data.responseId);
         }
 
         // Display the response
