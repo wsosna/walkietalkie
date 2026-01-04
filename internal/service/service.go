@@ -6,18 +6,26 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"walkietalkie/internal/service/internal/ai"
 )
 
+// aiSvc defines the interface for AI operations (useful for testing)
+type aiSvc interface {
+	SendMessage(ctx context.Context, message, previousResponseID, language string) (string, string, error)
+	TranscribeAndSend(ctx context.Context, audioFile io.Reader, filename, previousResponseID, language string) (string, string, error)
+	GenerateVoiceResponse(ctx context.Context, text, language string) ([]byte, error)
+}
+
 // Service handles business logic for chat operations
 type Service struct {
-	ai *ai.Service
+	ai aiSvc
 }
 
 // New creates a new service instance
-func New(apiKey, model string) *Service {
+func New(aiService *ai.Service) *Service {
 	return &Service{
-		ai: ai.NewService(apiKey, model),
+		ai: aiService,
 	}
 }
 
@@ -103,7 +111,7 @@ func validateAndMapLanguage(lang string) string {
 		"es": "spanish",
 	}
 
-	if mappedLang, ok := validLanguages[lang]; ok {
+	if mappedLang, ok := validLanguages[strings.ToLower(lang)]; ok {
 		return mappedLang
 	}
 
