@@ -109,6 +109,24 @@ h1 {
     color: #d32f2f;
 }
 
+.corrections {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #ccc;
+}
+
+.corrections p {
+    margin: 4px 0;
+}
+
+.corrections del {
+    color: #d32f2f;
+}
+
+.corrections strong {
+    color: #2e7d32;
+}
+
 .voice-area {
     margin: 20px 0;
     text-align: center;

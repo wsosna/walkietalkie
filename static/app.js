@@ -80,6 +80,68 @@ function playAudioResponse(base64Audio) {
     }
 }
 
+// Append text to parent, turning ~~deleted~~ and **bold** into elements.
+// Everything is inserted as text nodes, so model output can never inject HTML.
+function appendInline(parent, text) {
+    text.split(/(~~[^~]+~~|\*\*[^*]+\*\*)/).forEach(part => {
+        if (/^~~[^~]+~~$/.test(part)) {
+            const del = document.createElement('del');
+            del.textContent = part.slice(2, -2);
+            parent.appendChild(del);
+        } else if (/^\*\*[^*]+\*\*$/.test(part)) {
+            const strong = document.createElement('strong');
+            strong.textContent = part.slice(2, -2);
+            parent.appendChild(strong);
+        } else if (part) {
+            parent.appendChild(document.createTextNode(part));
+        }
+    });
+}
+
+// Show a plain-text message (status or error) in the response area
+function showMessage(text, className) {
+    const p = document.createElement('p');
+    if (className) p.className = className;
+    p.textContent = text;
+    responseArea.replaceChildren(p);
+}
+
+// Show the teacher's reply, split into <corrections> and <response> blocks.
+// The prompt example closes <corrections> with another <corrections>, so accept that too.
+function showReply(reply) {
+    const corrections = reply.match(/<corrections>([\s\S]*?)(?:<\/corrections>|<corrections>|<response>|$)/);
+    const response = reply.match(/<response>([\s\S]*?)(?:<\/response>|$)/);
+    const nodes = [];
+
+    const lines = corrections
+        ? corrections[1].split('\n').map(line => line.trim()).filter(Boolean)
+        : [];
+    if (lines.length > 0) {
+        const box = document.createElement('div');
+        box.className = 'corrections';
+        lines.forEach(line => {
+            const p = document.createElement('p');
+            appendInline(p, line);
+            box.appendChild(p);
+        });
+        nodes.push(box);
+    }
+
+    // No tags at all: show the whole reply
+    const responseText = (response ? response[1] : (corrections ? '' : reply)).trim();
+    if (responseText) {
+        const p = document.createElement('p');
+        appendInline(p, responseText);
+        nodes.push(p);
+    }
+
+    if (nodes.length === 0) {
+        showMessage(reply);
+        return;
+    }
+    responseArea.replaceChildren(...nodes);
+}
+
 // Send text message
 async function sendMessage() {
     const message = messageInput.value.trim();
@@ -124,7 +186,7 @@ async function sendMessage() {
         }
 
         // Display the response
-        responseArea.innerHTML = `<p>${data.reply}</p>`;
+        showReply(data.reply);
 
         // Play audio response if available
         if (data.audioData) {
@@ -134,7 +196,7 @@ async function sendMessage() {
         // Clear input
         messageInput.value = '';
     } catch (error) {
-        responseArea.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        showMessage(`Error: ${error.message}`, 'error');
         console.error('Error:', error);
     } finally {
         // Re-enable input
@@ -272,14 +334,14 @@ async function sendAudioMessage(audioBlob, mimeType) {
         }
 
         // Display the response
-        responseArea.innerHTML = `<p>${data.reply}</p>`;
+        showReply(data.reply);
 
         // Play audio response if available
         if (data.audioData) {
             playAudioResponse(data.audioData);
         }
     } catch (error) {
-        responseArea.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        showMessage(`Error: ${error.message}`, 'error');
         console.error('Error:', error);
     } finally {
         // Re-enable buttons
